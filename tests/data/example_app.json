@@ -1,0 +1,13 @@
+{
+    "human": [
+        {
+            "name": "John"
+        }
+    ],
+    "pet": [
+        {
+            "name": "Milo",
+            "species": "DOG"
+        }
+    ]
+}

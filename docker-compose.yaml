@@ -1,0 +1,9 @@
+services:
+  sqlamock:
+    build: .
+    container_name: sqlamock
+    env_file: .env
+    tty: true
+    entrypoint: bash
+    volumes:
+      - .:/sqlamock
