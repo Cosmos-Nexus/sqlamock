@@ -2,10 +2,11 @@ name: Test Poetry Package
 
 on:
   push:
+    paths:
+      - 'sqlamock/**'
+      - 'tests/**'
     branches:
       - "**"
-  pull_request:
-
 jobs:
   test:
     name: Test Package
