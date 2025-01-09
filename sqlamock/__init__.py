@@ -65,7 +65,7 @@ def test_model_create(db_mock: "DBMock", db_mock_connection: "MockConnectionProv
 """
 
 # Easier imports for typing or whatever :)
-from .connection_provider import MockAsyncConnectionProvider, MockConnectionProvider
+from .connection_provider import MockConnectionProvider
 from .data_interface import MockDataInterface
 from .db_mock import DBMock
 from .patches import Patches
@@ -73,7 +73,6 @@ from .patches import Patches
 __all__ = [
     "DBMock",
     "MockConnectionProvider",
-    "MockAsyncConnectionProvider",
     "MockDataInterface",
     "Patches",
 ]

@@ -7,7 +7,10 @@ authors = ["Chris Lee <chris@cosmosnexus.co>"]
 [tool.poetry.dependencies]
 python = ">=3.10,<4"
 sqlalchemy = "^2.0.36"
+aiosqlite = { version = "^0.20.0", optional = true }
 
+[tool.poetry.extras]
+async = ["aiosqlite"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
@@ -15,6 +18,7 @@ ipdb = "^0.13.13"
 mypy = "^1.13.0"
 ruff = "^0.7.2"
 pytest-cov = "^6.0.0"
+pytest-asyncio = "^0.25.2"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

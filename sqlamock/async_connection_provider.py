@@ -1,13 +1,13 @@
-import tempfile
+import asyncio
 from functools import lru_cache
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Engine, create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+
+from sqlamock.connection_provider import MockConnectionProvider
 
 
-class MockConnectionProvider:
+class MockAsyncConnectionProvider(MockConnectionProvider):
     """A class that provides mock database connections for patching purposes.
 
     This class creates and manages SQLite in-memory(file) databases, which can be used
@@ -21,38 +21,36 @@ class MockConnectionProvider:
         engine_kwargs: dict
 
     def __init__(self, engine_kwargs: dict | None = None):
-        """Initialize a new MockConnectionProvider instance.
+        """Initialize a new MockAsyncConnectionProvider instance.
 
         Args:
-            engine_kwargs (dict | None): Additional keyword arguments to pass to create_engine.
+            engine_kwargs (dict | None): Additional keyword arguments to pass to create_async_engine.
                                          If None, an empty dict will be used.
         """
         self.engine_kwargs = engine_kwargs or {}
 
     @lru_cache  # noqa: B019
-    def get_engine(self) -> Engine:
-        """Get or create a SQLAlchemy engine instance.
-
-        This method creates a new SQLite in-memory database engine. The result is
-        cached, so subsequent calls will return the same engine instance.
+    def get_async_engine(self) -> AsyncEngine:
+        """Get or create a SQLAlchemy async engine instance.
 
         Returns:
-            Engine: A SQLAlchemy engine instance.
+            AsyncEngine: A SQLAlchemy async engine instance.
         """
-        with tempfile.NamedTemporaryFile() as tmpfile:
-            return create_engine(f"sqlite:///{tmpfile.name}", **self.engine_kwargs)
+        engine = self.get_engine()
+        return create_async_engine(
+            engine.url.set(drivername="sqlite+aiosqlite"),
+            **self.engine_kwargs,
+        )
 
-    def get_session(self) -> Session:
-        """Create a new SQLAlchemy session.
-
-        This method creates a new session bound to the engine returned by get_engine().
+    def get_async_session(self) -> AsyncSession:
+        """Create a new SQLAlchemy async session.
 
         Returns:
-            Session: A new SQLAlchemy session instance.
+            AsyncSession: A new SQLAlchemy async session instance.
         """
-        return Session(bind=self.get_engine())
+        return AsyncSession(bind=self.get_async_engine())
 
-    def reset(self):
+    async def async_reset(self):
         """Reset the connection provider.
 
         This method disposes of the current engine and clears the engine cache,
@@ -61,5 +59,6 @@ class MockConnectionProvider:
         This is used in conjunction with the Snapshot context manager to reset the
         database state between db_mock contexts (especially nested ones).
         """
-        self.get_engine().dispose()
-        self.get_engine.cache_clear()
+        await asyncio.to_thread(self.reset)
+        await self.get_async_engine().dispose()
+        self.get_async_engine.cache_clear()
