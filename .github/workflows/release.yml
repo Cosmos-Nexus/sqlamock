@@ -3,19 +3,22 @@ name: Continuous Delivery
 on:
   push:
     paths:
+      - 'pyproject.toml'
       - 'sqlamock/**'
       - 'tests/**'
-      - 'pyproject.toml'
     branches:
-      - "**"
+      - '**'
+
 jobs:
   test:
+    if: |
+      github.actor != 'github-actions[bot]'
     name: Test Package
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - name: Checkout Code
@@ -36,8 +39,11 @@ jobs:
         run: poetry run pytest -sv tests/
 
   release:
+    if: github.ref == 'refs/heads/main'
+    name: Release Package
     runs-on: ubuntu-latest
     concurrency: release
+    needs: test
 
     permissions:
       id-token: write
