@@ -49,3 +49,13 @@ ignore_missing_imports = true
 explicit_package_bases = true
 namespace_packages = true
 warn_unused_configs = true
+
+[tool.semantic_release]
+version_toml = [
+    "pyproject.toml:tool.poetry.version"
+]
+major_on_zero = false
+branch = "main"
+upload_to_PyPI = true
+upload_to_release = true
+build_command = "pip install poetry && poetry build"

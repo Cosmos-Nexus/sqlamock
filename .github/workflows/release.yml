@@ -1,12 +1,40 @@
 name: Continuous Delivery
 
 on:
-  workflow_run:
-    workflows:
-      - Test Poetry Package
-    types:
-      - completed
+  push:
+    paths:
+      - 'sqlamock/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+    branches:
+      - "**"
 jobs:
+  test:
+    name: Test Package
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install Dependencies
+        run: poetry install --all-extras
+
+      - name: Run Tests
+        run: poetry run pytest -sv tests/
+
   release:
     runs-on: ubuntu-latest
     concurrency: release
