@@ -1,6 +1,13 @@
 # CHANGELOG
 
 
+## v0.1.1 (2025-01-14)
+
+### Bug Fixes
+
+* fix: simulate minor version update ([`2420302`](https://github.com/Cosmos-Nexus/sqlamock/commit/24203028f9eb9b726a20d0d5c7cf150ad2d68db2))
+
+
 ## v0.1.0 (2025-01-14)
 
 ### Bug Fixes
