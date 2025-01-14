@@ -2,10 +2,10 @@ name: Continuous Delivery
 
 on:
   push:
-    paths:
-      - 'pyproject.toml'
-      - 'sqlamock/**'
-      - 'tests/**'
+    # paths:
+    #   - 'pyproject.toml'
+    #   - 'sqlamock/**'
+    #   - 'tests/**'
     branches:
       - '**'
 
