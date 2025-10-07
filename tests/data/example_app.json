@@ -9,5 +9,17 @@
             "name": "Milo",
             "species": "DOG"
         }
+    ],
+    "house": [
+        {
+            "name": "House 1",
+            "address": "Address 1",
+            "deleted": false
+        },
+        {
+            "name": "House 2",
+            "address": "Address 2",
+            "deleted": true
+        }
     ]
 }

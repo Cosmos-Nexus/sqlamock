@@ -2,6 +2,7 @@ import enum
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Enum,
     ForeignKey,
     Identity,
@@ -14,6 +15,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, rela
 
 class Base(DeclarativeBase):
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+
+
+class DeleteMixin:
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 def get_session(db_url: str = "somewhere:///overtherainbow") -> "Session":
@@ -49,6 +54,13 @@ class Soulmates(Base):
 
     human: Mapped[Human] = relationship(Human, lazy="selectin")
     pet: Mapped[Pet] = relationship(Pet, lazy="selectin")
+
+
+class House(Base, DeleteMixin):
+    __tablename__ = "house"
+
+    name: Mapped[str] = mapped_column(String)
+    address: Mapped[str] = mapped_column(String)
 
 
 def query_humans() -> list[Human]:

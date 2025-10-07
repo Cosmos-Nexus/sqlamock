@@ -10,6 +10,7 @@ from sqlamock.patches import Patches
 
 from .async_snapshot import AsyncSnapshot
 from .data_interface import MockDataInterface
+from .event_manager import EventManager
 from .types import BaseType
 
 if TYPE_CHECKING:
@@ -80,17 +81,20 @@ class AsyncDBMock(Generic[BaseType]):
         connection_provider: "MockAsyncConnectionProvider"
         database_initialized: bool
         patches: Patches
+        event_manager: EventManager
 
     def __init__(
         self,
         base: "type[BaseType]",
         connection_provider: "MockAsyncConnectionProvider",
         patches: "Patches",
+        event_manager: "EventManager | None" = None,
     ):
         self.base = base
         self.connection_provider = connection_provider
         self.database_initialized = False
         self.patches = patches
+        self.event_manager = event_manager or EventManager()
 
     @property
     def metadata(self) -> "MetaData":

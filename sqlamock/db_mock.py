@@ -8,6 +8,7 @@ from sqlalchemy import Integer, inspect
 from sqlamock.patches import Patches
 
 from .data_interface import MockDataInterface
+from .event_manager import EventManager
 from .snapshot import Snapshot
 from .types import BaseType
 
@@ -77,17 +78,20 @@ class DBMock(Generic[BaseType]):
         connection_provider: ConnectionProvider
         database_initialized: bool
         patches: Patches
+        event_manager: EventManager
 
     def __init__(
         self,
         base: "type[BaseType]",
         connection_provider: "ConnectionProvider",
         patches: "Patches",
+        event_manager: "EventManager | None" = None,
     ):
         self.base = base
         self.connection_provider = connection_provider
         self.database_initialized = False
         self.patches = patches
+        self.event_manager = event_manager or EventManager()
 
     @property
     def metadata(self) -> "MetaData":
@@ -161,6 +165,7 @@ class DBMock(Generic[BaseType]):
         with self.patches:
             self.init_database()
             with Snapshot(self.connection_provider):
+                engine = self.connection_provider.get_engine()
                 with self.connection_provider.get_session() as session:
                     session.add_all(instances)
                     session.commit()

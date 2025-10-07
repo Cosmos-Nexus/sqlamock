@@ -7,6 +7,7 @@ from sqlamock.patches import Patches
 
 from .connection_provider import MockConnectionProvider
 from .db_mock import DBMock
+from .event_manager import EventManager
 
 if TYPE_CHECKING:
     from .connection_provider import ConnectionProvider
@@ -50,10 +51,24 @@ def db_mock_patches() -> "Patches":
 
 
 @pytest.fixture(scope="session")
+def db_mock_event_manager() -> "EventManager":
+    """Fixture that provides an EventManager for registering SQLAlchemy event listeners.
+
+    This fixture creates and returns an EventManager instance that can be used to
+    register event listeners for testing event-driven database operations.
+
+    Returns:
+        EventManager: An instance of EventManager for use in tests.
+    """
+    return EventManager()
+
+
+@pytest.fixture(scope="session")
 def db_mock(
     db_mock_connection: "ConnectionProvider",
     db_mock_base_model: "type[BaseType]",
     db_mock_patches: "Patches",
+    db_mock_event_manager: "EventManager",
 ) -> "DBMock":
     """Fixture that provides the main DBMock interface for database data mocking in tests.
 
@@ -63,8 +78,12 @@ def db_mock(
     Args:
         db_mock_connection (MockConnectionProvider): The mock connection provider.
         db_mock_base_model (type[SQLAlchemyORMProtocol]): The base SQLAlchemy model.
+        db_mock_patches (Patches): The patches manager.
+        db_mock_event_manager (EventManager): The event manager for SQLAlchemy events.
 
     Returns:
         DBMock: An instance of DBMock for use in tests.
     """
-    return DBMock(db_mock_base_model, db_mock_connection, db_mock_patches)
+    return DBMock(
+        db_mock_base_model, db_mock_connection, db_mock_patches, db_mock_event_manager
+    )

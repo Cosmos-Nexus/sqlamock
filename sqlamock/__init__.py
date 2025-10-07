@@ -24,6 +24,30 @@ Usage Examples
         with db_mock.from_file("mock_data/bulk_operations.json") as mocked_data:
             pass
 
+4. Using SQLAlchemy event listeners (e.g., soft delete filtering):
+
+    def test_soft_delete_filtering(db_mock, db_mock_event_manager):
+        def add_soft_delete_filter(execute_state):
+            if execute_state.is_select and not execute_state.execution_options.get(
+                "include_deleted", False
+            ):
+                execute_state.statement = execute_state.statement.options(
+                    with_loader_criteria(
+                        DeleteMixin,
+                        lambda cls: cls.deleted.is_(False),
+                        include_aliases=True,
+                    )
+                )
+
+        # Register the event listener
+        db_mock_event_manager.register_orm_execute_listener(add_soft_delete_filter)
+
+        # Create test data
+        user = User(name="Test", deleted=False)
+        with db_mock.from_orm([user]) as mocked_data:
+            # Event listeners will be triggered during database operations
+            pass
+
 Configuration
 -------------
 
@@ -68,10 +92,12 @@ def test_model_create(db_mock: "DBMock", db_mock_connection: "MockConnectionProv
 from .connection_provider import MockConnectionProvider
 from .data_interface import MockDataInterface
 from .db_mock import DBMock
+from .event_manager import EventManager
 from .patches import Patches
 
 __all__ = [
     "DBMock",
+    "EventManager",
     "MockConnectionProvider",
     "MockDataInterface",
     "Patches",

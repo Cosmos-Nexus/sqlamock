@@ -2,6 +2,7 @@ import enum
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Enum,
     ForeignKey,
     Identity,
@@ -15,6 +16,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+
+
+class DeleteMixin:
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 def get_session(db_url: str = "somewhere:///overtherainbow") -> "AsyncSession":
@@ -52,6 +57,13 @@ class Soulmates(Base):
     pet: Mapped[Pet] = relationship(Pet, lazy="selectin")
 
 
+class House(Base, DeleteMixin):
+    __tablename__ = "house"
+
+    name: Mapped[str] = mapped_column(String)
+    address: Mapped[str] = mapped_column(String)
+
+
 async def query_humans() -> list[Human]:
     async with get_session() as session:
         result = await session.scalars(select(Human))
@@ -67,4 +79,12 @@ async def query_pets() -> list[Pet]:
 async def query_soulmates() -> list[Soulmates]:
     async with get_session() as session:
         result = await session.scalars(select(Soulmates).join(Human).join(Pet))
+        return list(result.all())
+
+
+async def query_houses(with_deleted: bool = False) -> list[House]:
+    async with get_session() as session:
+        result = await session.scalars(
+            select(House).execution_options(include_deleted=with_deleted)
+        )
         return list(result.all())

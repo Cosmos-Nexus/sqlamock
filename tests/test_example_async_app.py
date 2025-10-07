@@ -3,15 +3,20 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
+from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, with_loader_criteria
 
 from .example_async_app import (
     Base,
     DeclarativeBase,
+    DeleteMixin,
+    House,
     Human,
     Pet,
     Soulmates,
     Species,
+    query_houses,
     query_humans,
     query_pets,
     query_soulmates,
@@ -164,3 +169,32 @@ async def test_db_mock_from_file(db_mock_async: "AsyncDBMock"):
         pets = await query_pets()
         assert len(pets) == 1
         assert pets[0].name == "Milo"
+
+
+@event.listens_for(Session, "do_orm_execute")
+def add_soft_delete_filter(execute_state):
+    if execute_state.is_select and not execute_state.execution_options.get(
+        "include_deleted", False
+    ):
+        execute_state.statement = execute_state.statement.options(
+            with_loader_criteria(
+                DeleteMixin,
+                lambda cls: cls.deleted.is_(False),
+                include_aliases=True,
+            )
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("with_deleted, expected_length", [(True, 2), (False, 1)])
+async def test_soft_delete_filtering_pattern_with_db_mock(
+    db_mock_async, db_mock_event_manager, with_deleted, expected_length
+):
+    db_mock_event_manager.register_listener(add_soft_delete_filter)
+
+    path = Path(__file__).parent / "data" / "example_app.json"
+    async with db_mock_async.from_file(path) as mocked_data:
+        houses = await query_houses(with_deleted)
+        assert len(houses) == expected_length
+        if not with_deleted:
+            assert houses[0].deleted is False
