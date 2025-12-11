@@ -8,7 +8,6 @@ from sqlamock.async_db_mock import AsyncDBMock
 from sqlamock.connection_provider import MockConnectionProvider
 from sqlamock.db_mock import DBMock
 from sqlamock.patches import Patches
-from tests.index_tests.index_async_schemas import IndexBase as AsyncIndexBase
 from tests.index_tests.index_schemas import IndexBase
 
 if TYPE_CHECKING:
@@ -54,14 +53,14 @@ def db_mock_async_connection() -> "MockAsyncConnectionProvider":
 
 
 @pytest.fixture(scope="session")
-def db_mock_async_base_model() -> "type[AsyncIndexBase]":
-    return AsyncIndexBase
+def db_mock_async_base_model() -> "type[IndexBase]":
+    return IndexBase
 
 
 @pytest.fixture(scope="session")
 def db_mock_async(
     db_mock_async_connection: "MockAsyncConnectionProvider",
-    db_mock_async_base_model: "type[AsyncIndexBase]",
+    db_mock_async_base_model: "type[IndexBase]",
     db_mock_patches: "Patches",
 ) -> "AsyncDBMock":
     return AsyncDBMock(
@@ -71,8 +70,8 @@ def db_mock_async(
 
 @pytest.fixture(scope="session", autouse=True)
 def mock_index_async_session(db_mock_async_connection: "MockAsyncConnectionProvider"):
-    async def get_session(*args, **kwargs):
+    def get_session(*args, **kwargs):
         return db_mock_async_connection.get_async_session()
 
-    with patch("tests.index_tests.index_async_schemas.get_index_session", get_session):
+    with patch("tests.index_tests.index_schemas.get_index_async_session", get_session):
         yield

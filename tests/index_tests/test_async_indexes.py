@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 import pytest
 from sqlalchemy import inspect
 
-from tests.index_tests.index_async_schemas import Product, User
+from tests.index_tests.index_schemas import Product, User
 
 if TYPE_CHECKING:
     from sqlamock.async_connection_provider import MockAsyncConnectionProvider

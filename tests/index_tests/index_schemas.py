@@ -9,6 +9,7 @@ from sqlalchemy import (
     create_engine,
     text,
 )
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 
@@ -18,6 +19,13 @@ class IndexBase(DeclarativeBase):
 
 def get_index_session(db_url: str = "somewhere:///overtherainbow") -> "Session":
     return Session(bind=create_engine(db_url))
+
+
+async def get_index_async_session(
+    db_url: str = "somewhere:///overtherainbow",
+) -> "AsyncSession":
+    engine = create_async_engine(db_url)
+    return AsyncSession(bind=engine)
 
 
 class User(IndexBase):
