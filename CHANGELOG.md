@@ -1,6 +1,13 @@
 # CHANGELOG
 
 
+## v0.2.0 (2025-12-11)
+
+### Features
+
+* feat: Create indexes (#1) ([`ac0dc8e`](https://github.com/Cosmos-Nexus/sqlamock/commit/ac0dc8ef83da824b33790dc45bc09cdc3b5754b3))
+
+
 ## v0.1.1 (2025-01-14)
 
 ### Bug Fixes

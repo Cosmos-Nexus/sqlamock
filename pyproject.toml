@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sqlamock"
-version = "0.1.1"
+version = "0.2.0"
 description = "Provides mocks for SQLAlchemy using in-memory / on-file sqlite databases with growing support for PostgreSQL"
 authors = ["Chris Lee <chris@cosmosnexus.co>"]
 
