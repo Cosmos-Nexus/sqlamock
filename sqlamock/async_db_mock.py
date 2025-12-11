@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from functools import cached_property
 from typing import TYPE_CHECKING, Generic
 
-from sqlalchemy import Integer, inspect
-from sqlalchemy.schema import CreateTable
+from sqlalchemy import Index, Integer, inspect
+from sqlalchemy.schema import CreateIndex, CreateTable
 
 from sqlamock.patches import Patches
 
@@ -205,5 +205,39 @@ class AsyncDBMock(Generic[BaseType]):
             for table_to_create in tables_to_create:
                 create_table_stmt = CreateTable(table_to_create)
                 await conn.execute(create_table_stmt)
+
+            # Create indexes asynchronously
+            for table in self.base.metadata.sorted_tables:
+                indexes_to_process = list(table.indexes)
+                for index in indexes_to_process:
+                    if index.name:
+                        existing_indexes = await conn.run_sync(
+                            lambda sync_conn, t=table: inspection.get_indexes(
+                                t.name, schema=t.schema
+                            )
+                        )
+                        index_exists = any(
+                            idx_dict["name"] == index.name
+                            for idx_dict in existing_indexes
+                        )
+                        if not index_exists:
+                            try:
+                                index_to_create = index
+                                if hasattr(index, "dialect_options"):
+                                    postgresql_opts = index.dialect_options.get(
+                                        "postgresql", {}
+                                    )
+                                    postgresql_where = postgresql_opts.get("where")
+                                    if postgresql_where is not None:
+                                        index_to_create = Index(
+                                            index.name,
+                                            *[col for col in index.columns],
+                                            unique=index.unique,
+                                            sqlite_where=postgresql_where,
+                                        )
+                                create_index_stmt = CreateIndex(index_to_create)
+                                await conn.execute(create_index_stmt)
+                            except Exception:
+                                pass
 
         self.database_initialized = True
