@@ -3,7 +3,8 @@ from contextlib import contextmanager
 from functools import cached_property
 from typing import TYPE_CHECKING, Generic
 
-from sqlalchemy import Integer, inspect
+from sqlalchemy import Index, Integer, inspect
+from sqlalchemy.schema import CreateIndex
 
 from sqlamock.patches import Patches
 
@@ -194,6 +195,42 @@ class DBMock(Generic[BaseType]):
                     column.type = Integer()
 
         for table_to_create in tables_to_create:
+            indexes_with_postgresql_where = []
+            indexes_to_remove = []
+
+            for index in list(table_to_create.indexes):
+                if index.name and hasattr(index, "dialect_options"):
+                    postgresql_opts = index.dialect_options.get("postgresql", {})
+                    postgresql_where = postgresql_opts.get("where")
+                    if postgresql_where is not None:
+                        indexes_with_postgresql_where.append((index, postgresql_where))
+                        indexes_to_remove.append(index)
+
+            for index in indexes_to_remove:
+                table_to_create.indexes.discard(index)
+
             table_to_create.create(engine)
+
+            for index, postgresql_where in indexes_with_postgresql_where:
+                existing_indexes = inspection.get_indexes(
+                    table_to_create.name, schema=table_to_create.schema
+                )
+                existing_index_names = {idx["name"] for idx in existing_indexes}
+
+                if index.name not in existing_index_names:
+                    index_to_create = Index(
+                        index.name,
+                        *[col for col in index.columns],
+                        unique=index.unique,
+                        sqlite_where=postgresql_where,
+                    )
+                    try:
+                        with engine.connect() as conn:
+                            conn.execute(CreateIndex(index_to_create))
+                            conn.commit()
+                    except Exception as e:
+                        # Index might already exist or there might be another issue
+                        # Silently continue as the index may have been created by table.create()
+                        pass
 
         self.database_initialized = True
