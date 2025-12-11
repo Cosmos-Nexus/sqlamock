@@ -1,28 +1,13 @@
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
 import pytest
 from sqlalchemy import inspect
 
-from .index_async_schemas import IndexBase, Product, User
+from tests.index_tests.index_async_schemas import Product, User
 
 if TYPE_CHECKING:
     from sqlamock.async_connection_provider import MockAsyncConnectionProvider
     from sqlamock.async_db_mock import AsyncDBMock
-
-
-@pytest.fixture(scope="session")
-def db_mock_base_model() -> "type[IndexBase]":
-    return IndexBase
-
-
-@pytest.fixture(scope="session", autouse=True)
-def mock_index_session(db_mock_async_connection: "MockAsyncConnectionProvider"):
-    async def get_session(*args, **kwargs):
-        return db_mock_async_connection.get_async_session()
-
-    with patch("tests.index_async_schemas.get_index_session", get_session):
-        yield
 
 
 @pytest.mark.asyncio

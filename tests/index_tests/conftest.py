@@ -1,0 +1,78 @@
+from typing import TYPE_CHECKING
+from unittest.mock import patch
+
+import pytest
+
+from sqlamock.async_connection_provider import MockAsyncConnectionProvider
+from sqlamock.async_db_mock import AsyncDBMock
+from sqlamock.connection_provider import MockConnectionProvider
+from sqlamock.db_mock import DBMock
+from sqlamock.patches import Patches
+from tests.index_tests.index_async_schemas import IndexBase as AsyncIndexBase
+from tests.index_tests.index_schemas import IndexBase
+
+if TYPE_CHECKING:
+    pass
+
+
+@pytest.fixture(scope="session")
+def db_mock_connection() -> "MockConnectionProvider":
+    return MockConnectionProvider()
+
+
+@pytest.fixture(scope="session")
+def db_mock_patches() -> "Patches":
+    return Patches()
+
+
+@pytest.fixture(scope="session")
+def db_mock_base_model() -> "type[IndexBase]":
+    return IndexBase
+
+
+@pytest.fixture(scope="session")
+def db_mock(
+    db_mock_connection: "MockConnectionProvider",
+    db_mock_base_model: "type[IndexBase]",
+    db_mock_patches: "Patches",
+) -> "DBMock":
+    return DBMock(db_mock_base_model, db_mock_connection, db_mock_patches)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_index_session(db_mock_connection: "MockConnectionProvider"):
+    def get_engine(*args, **kwargs):
+        return db_mock_connection.get_engine()
+
+    with patch("tests.index_tests.index_schemas.create_engine", get_engine):
+        yield
+
+
+@pytest.fixture(scope="session")
+def db_mock_async_connection() -> "MockAsyncConnectionProvider":
+    return MockAsyncConnectionProvider()
+
+
+@pytest.fixture(scope="session")
+def db_mock_async_base_model() -> "type[AsyncIndexBase]":
+    return AsyncIndexBase
+
+
+@pytest.fixture(scope="session")
+def db_mock_async(
+    db_mock_async_connection: "MockAsyncConnectionProvider",
+    db_mock_async_base_model: "type[AsyncIndexBase]",
+    db_mock_patches: "Patches",
+) -> "AsyncDBMock":
+    return AsyncDBMock(
+        db_mock_async_base_model, db_mock_async_connection, db_mock_patches
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_index_async_session(db_mock_async_connection: "MockAsyncConnectionProvider"):
+    async def get_session(*args, **kwargs):
+        return db_mock_async_connection.get_async_session()
+
+    with patch("tests.index_tests.index_async_schemas.get_index_session", get_session):
+        yield

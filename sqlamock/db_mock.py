@@ -195,35 +195,42 @@ class DBMock(Generic[BaseType]):
                     column.type = Integer()
 
         for table_to_create in tables_to_create:
+            indexes_with_postgresql_where = []
+            indexes_to_remove = []
+
+            for index in list(table_to_create.indexes):
+                if index.name and hasattr(index, "dialect_options"):
+                    postgresql_opts = index.dialect_options.get("postgresql", {})
+                    postgresql_where = postgresql_opts.get("where")
+                    if postgresql_where is not None:
+                        indexes_with_postgresql_where.append((index, postgresql_where))
+                        indexes_to_remove.append(index)
+
+            for index in indexes_to_remove:
+                table_to_create.indexes.discard(index)
+
             table_to_create.create(engine)
 
-        for table in self.base.metadata.sorted_tables:
-            indexes_to_process = list(table.indexes)
-            for index in indexes_to_process:
-                if index.name:
-                    existing_indexes = inspection.get_indexes(
-                        table.name, schema=table.schema
+            for index, postgresql_where in indexes_with_postgresql_where:
+                existing_indexes = inspection.get_indexes(
+                    table_to_create.name, schema=table_to_create.schema
+                )
+                existing_index_names = {idx["name"] for idx in existing_indexes}
+
+                if index.name not in existing_index_names:
+                    index_to_create = Index(
+                        index.name,
+                        *[col for col in index.columns],
+                        unique=index.unique,
+                        sqlite_where=postgresql_where,
                     )
-                    index_exists = any(
-                        idx["name"] == index.name for idx in existing_indexes
-                    )
-                    if not index_exists:
-                        try:
-                            index_to_create = index
-                            if hasattr(index, "dialect_options"):
-                                postgresql_opts = index.dialect_options.get(
-                                    "postgresql", {}
-                                )
-                                postgresql_where = postgresql_opts.get("where")
-                                if postgresql_where is not None:
-                                    index_to_create = Index(
-                                        index.name,
-                                        *[col for col in index.columns],
-                                        unique=index.unique,
-                                        sqlite_where=postgresql_where,
-                                    )
-                            CreateIndex(index_to_create).create(engine)
-                        except Exception:
-                            pass
+                    try:
+                        with engine.connect() as conn:
+                            conn.execute(CreateIndex(index_to_create))
+                            conn.commit()
+                    except Exception as e:
+                        # Index might already exist or there might be another issue
+                        # Silently continue as the index may have been created by table.create()
+                        pass
 
         self.database_initialized = True

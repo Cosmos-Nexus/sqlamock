@@ -207,37 +207,37 @@ class AsyncDBMock(Generic[BaseType]):
                 await conn.execute(create_table_stmt)
 
             # Create indexes asynchronously
+            # CreateTable doesn't automatically create indexes, so we need to create them all manually
             for table in self.base.metadata.sorted_tables:
+                existing_indexes = await conn.run_sync(
+                    lambda sync_conn, t=table: inspection.get_indexes(
+                        t.name, schema=t.schema
+                    )
+                )
+                existing_index_names = {
+                    idx_dict["name"] for idx_dict in existing_indexes
+                }
+
                 indexes_to_process = list(table.indexes)
                 for index in indexes_to_process:
-                    if index.name:
-                        existing_indexes = await conn.run_sync(
-                            lambda sync_conn, t=table: inspection.get_indexes(
-                                t.name, schema=t.schema
-                            )
-                        )
-                        index_exists = any(
-                            idx_dict["name"] == index.name
-                            for idx_dict in existing_indexes
-                        )
-                        if not index_exists:
-                            try:
-                                index_to_create = index
-                                if hasattr(index, "dialect_options"):
-                                    postgresql_opts = index.dialect_options.get(
-                                        "postgresql", {}
+                    if index.name and index.name not in existing_index_names:
+                        try:
+                            index_to_create = index
+                            if hasattr(index, "dialect_options"):
+                                postgresql_opts = index.dialect_options.get(
+                                    "postgresql", {}
+                                )
+                                postgresql_where = postgresql_opts.get("where")
+                                if postgresql_where is not None:
+                                    index_to_create = Index(
+                                        index.name,
+                                        *[col for col in index.columns],
+                                        unique=index.unique,
+                                        sqlite_where=postgresql_where,
                                     )
-                                    postgresql_where = postgresql_opts.get("where")
-                                    if postgresql_where is not None:
-                                        index_to_create = Index(
-                                            index.name,
-                                            *[col for col in index.columns],
-                                            unique=index.unique,
-                                            sqlite_where=postgresql_where,
-                                        )
-                                create_index_stmt = CreateIndex(index_to_create)
-                                await conn.execute(create_index_stmt)
-                            except Exception:
-                                pass
+                            create_index_stmt = CreateIndex(index_to_create)
+                            await conn.execute(create_index_stmt)
+                        except Exception:
+                            pass
 
         self.database_initialized = True

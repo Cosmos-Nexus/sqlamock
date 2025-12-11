@@ -1,29 +1,14 @@
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
 import pytest
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
-from .index_schemas import IndexBase, Product, User, get_index_session
+from tests.index_tests.index_schemas import Product, User
 
 if TYPE_CHECKING:
     from sqlamock.connection_provider import MockConnectionProvider
     from sqlamock.db_mock import DBMock
-
-
-@pytest.fixture(scope="session")
-def db_mock_base_model() -> "type[IndexBase]":
-    return IndexBase
-
-
-@pytest.fixture(scope="session", autouse=True)
-def mock_index_session(db_mock_connection: "MockConnectionProvider"):
-    def get_engine(*args, **kwargs):
-        return db_mock_connection.get_engine()
-
-    with patch("tests.index_schemas.create_engine", get_engine):
-        yield
 
 
 def test_indexes_are_created(
