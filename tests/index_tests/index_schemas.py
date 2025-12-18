@@ -59,3 +59,13 @@ class Product(IndexBase):
             postgresql_where=text("archived = false"),
         ),
     )
+
+
+class OrderItem(IndexBase):
+    __tablename__ = "order_item"
+
+    id: Mapped[int | None] = mapped_column(BigInteger, primary_key=False, default=None)
+    order_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    item_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    quantity: Mapped[int] = mapped_column(Integer)
+    price: Mapped[int] = mapped_column(Integer)
