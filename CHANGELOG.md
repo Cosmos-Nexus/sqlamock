@@ -1,6 +1,13 @@
 # CHANGELOG
 
 
+## v0.3.0 (2025-12-18)
+
+### Features
+
+* feat: Support composite pks (#2) ([`44f1749`](https://github.com/Cosmos-Nexus/sqlamock/commit/44f17495740238ecf4a3d1028699626001cb548a))
+
+
 ## v0.2.0 (2025-12-11)
 
 ### Features
