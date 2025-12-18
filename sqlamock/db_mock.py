@@ -186,12 +186,17 @@ class DBMock(Generic[BaseType]):
             if not inspection.has_table(table.name, schema=table.schema):
                 tables_to_create.add(table)
 
+            # note: addreses a limitation of SQLite in which Identity is not recognized as
+            # a column to auto generate values for. We must pass in autoincrement explicitly to achieve
+            # the same effect.
+            pk_columns = [c for c in table.columns if c.primary_key]
+            has_composite_pk = len(pk_columns) > 1
+
             for column in table.columns:
-                # note: addreses a limitation of SQLite in which Identity is not recognized as
-                # a column to auto generate values for. We must pass in autoincrement explicitly to achieve
-                # the same effect.
                 if column.primary_key and column.type.python_type is int:
-                    column.autoincrement = True
+                    # only set autoincrement=True if not a composite PK
+                    # sqlite does not support composite primary keys
+                    column.autoincrement = not has_composite_pk
                     column.type = Integer()
 
         for table_to_create in tables_to_create:

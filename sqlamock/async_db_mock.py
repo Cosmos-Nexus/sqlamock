@@ -195,10 +195,15 @@ class AsyncDBMock(Generic[BaseType]):
                 if not table_exists:
                     tables_to_create.add(table)
 
+                pk_columns = [c for c in table.columns if c.primary_key]
+                has_composite_pk = len(pk_columns) > 1
+
                 # Address SQLite's limitation with Identity columns
                 for column in table.columns:
                     if column.primary_key and column.type.python_type is int:
-                        column.autoincrement = True
+                        # only set autoincrement=True if not a composite PK
+                        # sqlite does not support composite primary keys
+                        column.autoincrement = not has_composite_pk
                         column.type = Integer()
 
             # Create tables asynchronously

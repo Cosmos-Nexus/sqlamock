@@ -142,3 +142,72 @@ def test_multiple_indexes_on_same_table(
             )
             >= 1
         )
+
+
+def test_index_idempotency(db_mock: "DBMock", db_mock_connection: "MockConnectionProvider"):
+    """Test that indexes are created correctly even when table already exists."""
+    # First context: create table with indexes
+    with db_mock.from_orm([User(email="user1@example.com", username="user1")]):
+        engine = db_mock_connection.get_engine()
+        inspection = inspect(engine)
+
+        indexes = inspection.get_indexes("user")
+        index_names = [idx["name"] for idx in indexes]
+        assert "idx_username" in index_names
+
+    # Second context: table already exists, should handle gracefully
+    with db_mock.from_orm([User(email="user2@example.com", username="user2")]):
+        engine = db_mock_connection.get_engine()
+        inspection = inspect(engine)
+
+        # Indexes should still exist
+        indexes = inspection.get_indexes("user")
+        index_names = [idx["name"] for idx in indexes]
+        assert "idx_username" in index_names
+
+
+def test_multi_column_partial_index(
+    db_mock: "DBMock", db_mock_connection: "MockConnectionProvider"
+):
+    """Test that multi-column partial indexes are created correctly."""
+    with db_mock.from_orm(
+        [
+            Product(name="Active Product 1", sku="SKU001", price=100, archived=False),
+            Product(name="Active Product 2", sku="SKU002", price=200, archived=False),
+            Product(name="Archived Product", sku="SKU003", price=150, archived=True),
+        ]
+    ):
+        engine = db_mock_connection.get_engine()
+        inspection = inspect(engine)
+
+        indexes = inspection.get_indexes("product")
+        index_names = [idx["name"] for idx in indexes]
+
+        # Verify the multi-column partial index exists
+        assert "idx_active_products" in index_names or any(
+            "idx_active_products" in idx.get("name", "") for idx in indexes
+        )
+
+        # Find the specific index and verify it has multiple columns
+        active_products_idx = next(
+            (idx for idx in indexes if idx.get("name") == "idx_active_products"),
+            None
+        )
+        if active_products_idx:
+            # The index should have both 'name' and 'price' columns
+            assert len(active_products_idx.get("column_names", [])) == 2
+
+
+def test_index_without_postgresql_where(
+    db_mock: "DBMock", db_mock_connection: "MockConnectionProvider"
+):
+    """Test that indexes without postgresql_where are created normally."""
+    with db_mock.from_orm([Product(name="Test Product", sku="SKU001", price=100)]):
+        engine = db_mock_connection.get_engine()
+        inspection = inspect(engine)
+
+        indexes = inspection.get_indexes("product")
+        index_names = [idx["name"] for idx in indexes]
+
+        # idx_product_name doesn't have postgresql_where, should be created normally
+        assert "idx_product_name" in index_names
